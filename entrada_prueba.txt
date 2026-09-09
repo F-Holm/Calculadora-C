@@ -1,0 +1,38 @@
+b = 2.3
+a = 3 + b*2
+b^3
+a#2.4
+
+x = .5
+y = 5.
+z = 5
+
+x += 1
+y -= 2
+z *= 3
+w /= 4
+
+(1 + 2) * (3 - 4) / (5 ^ 2)
+
+variable1 = 10
+VariableConMayus = 20
+v2 = variable1 + VariableConMayus
+
+3a
+abc_def
+5..5
+3.14.15
+.
+.+5
+
+@ # $ % & ! ~ ` ? : ; , [ ] { } \ ' "
+
+==
++=+=
+- - -3
+
+	x	y	z
+
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+
+resultado = (a + b) * c ^ 2 - d / e
