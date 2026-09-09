@@ -7,21 +7,21 @@ SRC = main.c scanner.c
 BIN = calc
 TEST_INPUT = entrada_prueba.txt
 
-.DEFAULT_GOAL := build
+.PHONY: all debug release format test clean
 
-.PHONY: build build-release format test clean
+all: debug
 
-build:
+debug:
 	$(CC) $(CFLAGS_COMMON) $(CFLAGS_DEBUG) -o $(BIN) $(SRC)
 
-build-release:
+release:
 	$(CC) $(CFLAGS_COMMON) $(CFLAGS_RELEASE) -o $(BIN) $(SRC)
 	strip $(BIN)
 
 format:
 	clang-format -style=Google -i *.c *.h
 
-test: build
+test: debug
 	./$(BIN) < $(TEST_INPUT)
 
 clean:
