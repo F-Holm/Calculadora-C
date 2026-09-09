@@ -1,3 +1,7 @@
+// ===========================================================================
+// Includes
+// ===========================================================================
+
 // #pragma once le pide al compilador que, si este archivo se vuelve a
 // incluir más de una vez en la misma unidad de compilación (algo que puede
 // pasar por cadenas de #include), lo ignore la segunda vez. Cumple la
@@ -5,9 +9,13 @@
 // pero sin necesidad de declarar un macro.
 #pragma once
 
-// Necesario porque más abajo usamos el tipo FILE (scanner_iniciar recibe
-// un FILE*).
-#include <stdio.h>
+// El escáner lee siempre de stdin y su interfaz pública no usa ningún tipo
+// de <stdio.h>, así que este header no necesita incluir nada: alcanza con
+// 'bool' (palabra clave en C23) y los tipos que se definen más abajo.
+
+// ===========================================================================
+// Constantes y tipos
+// ===========================================================================
 
 // Tamaño del buffer estático donde se informa el lexema reconocido.
 // 'static' en un constexpr de header significa que cada archivo .c que
@@ -77,6 +85,17 @@ typedef enum {
   ERROR_NUMERO_MAL_FORMADO
 } t_tipo_token;
 
+// ===========================================================================
+// Variables globales
+// ===========================================================================
+
+// El escáner no expone ninguna: lee siempre de stdin y su único estado
+// (el buffer del lexema) es privado de scanner.c.
+
+// ===========================================================================
+// Declaraciones de funciones
+// ===========================================================================
+
 // true si el token es un error léxico (segundo rango numérico).
 // Al ser 'static inline', el compilador puede insertar el cuerpo de esta
 // función directamente en el lugar donde se la llama (como si fuera un
@@ -89,17 +108,12 @@ static inline bool es_error_token(t_tipo_token token) {
   return token >= ERROR_CARACTER_INVALIDO;
 }
 
-// Fija el origen de caracteres del escáner. Debe llamarse antes del
-// primer scanner_siguiente_token() (y de nuevo cada vez que se lo quiera
-// reiniciar para leer de otra fuente, como hace main.c una vez por cada
-// línea de la entrada).
-void scanner_iniciar(FILE* entrada);
-
-// Reconoce y devuelve el siguiente token, avanzando sobre la entrada que
-// se pasó en scanner_iniciar(). Cada llamada consume de la entrada
-// exactamente los caracteres que forman un token (ni uno más ni uno
-// menos), y dejan el resto disponible para la próxima llamada.
-// El lexema correspondiente queda disponible via scanner_lexema().
+// Reconoce y devuelve el siguiente token, leyendo de stdin (la única
+// fuente que usa la calculadora: ver el ejemplo de la consigna, "$ ./calc",
+// y también "./calc < archivo", que redirige stdin igual). Cada llamada
+// consume de la entrada exactamente los caracteres que forman un token (ni
+// uno más ni uno menos), y deja el resto disponible para la próxima
+// llamada. El lexema correspondiente queda disponible via scanner_lexema().
 t_tipo_token scanner_siguiente_token(void);
 
 // Devuelve el lexema del último token reconocido, es decir, el texto

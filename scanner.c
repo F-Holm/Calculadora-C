@@ -1,9 +1,20 @@
+// ===========================================================================
+// Includes
+// ===========================================================================
+
 // Enum t_tipo_token, TAM_LEXEMA y los prototipos públicos del escáner que
 // implementamos acá abajo.
 #include "scanner.h"
 
 // isalpha(), isdigit(), isspace(): para clasificar cada carácter leído.
 #include <ctype.h>
+
+// fgetc(), ungetc(), stdin, EOF: el escáner lee siempre de stdin.
+#include <stdio.h>
+
+// ===========================================================================
+// Constantes y tipos
+// ===========================================================================
 
 // Clases de columna de la tabla (ver tabla.md): agrupamos los caracteres
 // de entrada en categorías, en vez de tener una columna por cada uno de
@@ -87,7 +98,7 @@ enum {
   // saber que el token ya está completo, porque no hay ninguna forma de
   // que un carácter más lo siga extendiendo (por ejemplo, un '^' suelto
   // siempre es un TOKEN_POT completo apenas se lo lee). Por eso no
-  // tienen fila propia en la tabla: ver tiene_fila() más abajo.
+  // tienen fila propia en la tabla: ver tiene_fila().
   EST_POT = 27,
   EST_ASIGNAR = 28,
   EST_MAS_ASIGNAR = 29,
@@ -280,6 +291,19 @@ static const int tabla[NUM_FILAS][NUM_CLASES] = {
                  [CLASE_EOF] = EST_ERROR,
                  [CLASE_OTRO] = EST_ERROR}};
 
+// ===========================================================================
+// Variables globales
+// ===========================================================================
+
+// Buffer estático que guarda el texto exacto del último token
+// reconocido (el "lexema"). Es el buffer que pide la consigna del TP2 y
+// el que devuelve scanner_lexema().
+static char lexema[TAM_LEXEMA];
+
+// ===========================================================================
+// Declaraciones de funciones privadas (static)
+// ===========================================================================
+
 // Estados aceptores que además tienen fila propia en la tabla, es decir,
 // que TODAVÍA pueden seguir consumiendo más caracteres antes de que el
 // token quede cerrado (por ejemplo EST_IDENT: "v", "va", "var" son todos
@@ -291,130 +315,35 @@ static const int tabla[NUM_FILAS][NUM_CLASES] = {
 // resto de las filas de la tabla de arriba directamente no existen: esta
 // función es la que le dice a scanner_siguiente_token() cuándo puede
 // saltearse la consulta a la tabla.
-static int tiene_fila(int estado) {
-  switch (estado) {
-    case EST_INICIAL:
-    case EST_PUNTO_PENDIENTE:
-    case EST_ENTERO:
-    case EST_DECIMAL:
-    case EST_IDENT:
-    case EST_SUMA:
-    case EST_RESTA:
-    case EST_MULT:
-    case EST_DIV:
-      return 1;
-    default:
-      return 0;
-  }
-}
+static int tiene_fila(int estado);
 
 // true si 'estado' es uno de los estados aceptores (rango 20-35 del
 // enum de más arriba), es decir, si detenerse ahí significa "se
 // reconoció un token válido" en vez de "hubo un error léxico".
-static int es_aceptor(int estado) { return estado >= 20 && estado <= 35; }
+static int es_aceptor(int estado);
 
 // Traduce un estado aceptor del autómata (interno de este archivo) al
 // t_tipo_token público correspondiente (el que main.c y el resto del mundo
 // conocen, definido en scanner.h). Solo tiene sentido llamarla con un
 // estado para el que es_aceptor() da verdadero.
-static t_tipo_token token_de_estado(int estado) {
-  switch (estado) {
-    // Tanto un entero puro como un decimal terminan siendo el mismo
-    // TOKEN_NUMERO: la diferencia entre "3" y "3.14" está en el
-    // lexema (el texto), no en el tipo de token.
-    case EST_ENTERO:
-    case EST_DECIMAL:
-      return TOKEN_NUMERO;
-    case EST_IDENT:
-      return TOKEN_IDENT;
-    case EST_SUMA:
-      return TOKEN_SUMA;
-    case EST_RESTA:
-      return TOKEN_RESTA;
-    case EST_MULT:
-      return TOKEN_MULT;
-    case EST_DIV:
-      return TOKEN_DIV;
-    case EST_POT:
-      return TOKEN_POT;
-    case EST_ASIGNAR:
-      return TOKEN_ASIGNAR;
-    case EST_MAS_ASIGNAR:
-      return TOKEN_MAS_ASIGNAR;
-    case EST_MENOS_ASIGNAR:
-      return TOKEN_MENOS_ASIGNAR;
-    case EST_MULT_ASIGNAR:
-      return TOKEN_MULT_ASIGNAR;
-    case EST_DIV_ASIGNAR:
-      return TOKEN_DIV_ASIGNAR;
-    case EST_PAR_ABRE:
-      return TOKEN_PAR_ABRE;
-    case EST_PAR_CIERRA:
-      return TOKEN_PAR_CIERRA;
-    // El único caso que queda (dado que esta función solo se llama con
-    // estados aceptores) es EST_FDT.
-    default:
-      return TOKEN_FDT; /* EST_FDT */
-  }
-}
+static t_tipo_token token_de_estado(int estado);
 
 // Traduce un carácter crudo (int, porque puede valer EOF, que no entra
 // en un char) a su t_clase de columna dentro de la tabla.
-static t_clase clasificar(int c) {
-  if (c == EOF) return CLASE_EOF;
-  if (isalpha(c)) return CLASE_LETRA;
-  if (isdigit(c)) return CLASE_DIGITO;
-  switch (c) {
-    case '.':
-      return CLASE_PUNTO;
-    case '+':
-      return CLASE_MAS;
-    case '-':
-      return CLASE_MENOS;
-    case '*':
-      return CLASE_POR;
-    case '/':
-      return CLASE_BARRA;
-    case '^':
-      return CLASE_CIRCUNFLEJO;
-    case '=':
-      return CLASE_IGUAL;
-    case '(':
-      return CLASE_PARIZQ;
-    case ')':
-      return CLASE_PARDER;
-    default:
-      // Todo lo que no matcheó nada de arriba: si es espacio en blanco
-      // (isspace cubre ' ', '\t', '\n', '\r', etc.) es CLASE_ESPACIO; si
-      // no, es un carácter que el lenguaje de la calculadora no conoce.
-      if (isspace(c)) return CLASE_ESPACIO;
-      return CLASE_OTRO;
-  }
-}
+static t_clase clasificar(int c);
 
-// FILE* del que se está leyendo actualmente. main.c lo cambia una vez
-// por línea (ver scanner_iniciar), así que no hace falta que sea más
-// que un simple puntero global privado de este archivo.
-static FILE* fuente;
-// Buffer estático que guarda el texto exacto del último token
-// reconocido (el "lexema"). Es el buffer que pide la consigna del TP2 y
-// el que devuelve scanner_lexema().
-static char lexema[TAM_LEXEMA];
+// Mira el próximo carácter de stdin SIN consumirlo: lo lee y enseguida
+// lo devuelve con ungetc para que quede disponible para la próxima
+// lectura. Así se puede decidir qué transición corresponde antes de
+// comprometerse a avanzar sobre ese carácter.
+static int peek(void);
 
-void scanner_iniciar(FILE* entrada) { fuente = entrada; }
+// Lee y consume (a diferencia de peek) el próximo carácter de stdin.
+static int avanzar(void);
 
-// Mira el próximo carácter de 'fuente' SIN consumirlo: lo lee y
-// enseguida lo devuelve con ungetc para que quede disponible para la
-// próxima lectura. Así se puede decidir qué transición corresponde
-// antes de comprometerse a avanzar sobre ese carácter.
-static int peek(void) {
-  int c = fgetc(fuente);
-  if (c != EOF) ungetc(c, fuente);
-  return c;
-}
-
-// Lee y consume (a diferencia de peek) el próximo carácter de 'fuente'.
-static int avanzar(void) { return fgetc(fuente); }
+// ===========================================================================
+// Definiciones de funciones públicas (declaradas en scanner.h)
+// ===========================================================================
 
 // Corazón del escáner: reconoce y devuelve UN token, recorriendo el
 // autómata de tabla.md carácter por carácter.
@@ -563,3 +492,107 @@ bool scanner_fin_de_linea(void) {
   // Cualquier otra cosa es el comienzo de otro token en la misma línea.
   return false;
 }
+
+// ===========================================================================
+// Definiciones de funciones privadas (static)
+// ===========================================================================
+
+static int tiene_fila(int estado) {
+  switch (estado) {
+    case EST_INICIAL:
+    case EST_PUNTO_PENDIENTE:
+    case EST_ENTERO:
+    case EST_DECIMAL:
+    case EST_IDENT:
+    case EST_SUMA:
+    case EST_RESTA:
+    case EST_MULT:
+    case EST_DIV:
+      return 1;
+    default:
+      return 0;
+  }
+}
+
+static int es_aceptor(int estado) { return estado >= 20 && estado <= 35; }
+
+static t_tipo_token token_de_estado(int estado) {
+  switch (estado) {
+    // Tanto un entero puro como un decimal terminan siendo el mismo
+    // TOKEN_NUMERO: la diferencia entre "3" y "3.14" está en el
+    // lexema (el texto), no en el tipo de token.
+    case EST_ENTERO:
+    case EST_DECIMAL:
+      return TOKEN_NUMERO;
+    case EST_IDENT:
+      return TOKEN_IDENT;
+    case EST_SUMA:
+      return TOKEN_SUMA;
+    case EST_RESTA:
+      return TOKEN_RESTA;
+    case EST_MULT:
+      return TOKEN_MULT;
+    case EST_DIV:
+      return TOKEN_DIV;
+    case EST_POT:
+      return TOKEN_POT;
+    case EST_ASIGNAR:
+      return TOKEN_ASIGNAR;
+    case EST_MAS_ASIGNAR:
+      return TOKEN_MAS_ASIGNAR;
+    case EST_MENOS_ASIGNAR:
+      return TOKEN_MENOS_ASIGNAR;
+    case EST_MULT_ASIGNAR:
+      return TOKEN_MULT_ASIGNAR;
+    case EST_DIV_ASIGNAR:
+      return TOKEN_DIV_ASIGNAR;
+    case EST_PAR_ABRE:
+      return TOKEN_PAR_ABRE;
+    case EST_PAR_CIERRA:
+      return TOKEN_PAR_CIERRA;
+    // El único caso que queda (dado que esta función solo se llama con
+    // estados aceptores) es EST_FDT.
+    default:
+      return TOKEN_FDT; /* EST_FDT */
+  }
+}
+
+static t_clase clasificar(int c) {
+  if (c == EOF) return CLASE_EOF;
+  if (isalpha(c)) return CLASE_LETRA;
+  if (isdigit(c)) return CLASE_DIGITO;
+  switch (c) {
+    case '.':
+      return CLASE_PUNTO;
+    case '+':
+      return CLASE_MAS;
+    case '-':
+      return CLASE_MENOS;
+    case '*':
+      return CLASE_POR;
+    case '/':
+      return CLASE_BARRA;
+    case '^':
+      return CLASE_CIRCUNFLEJO;
+    case '=':
+      return CLASE_IGUAL;
+    case '(':
+      return CLASE_PARIZQ;
+    case ')':
+      return CLASE_PARDER;
+    default:
+      // Todo lo que no matcheó nada de arriba: si es espacio en blanco
+      // (isspace cubre ' ', '\t', '\n', '\r', etc.) es CLASE_ESPACIO; si
+      // no, es un carácter que el lenguaje de la calculadora no conoce.
+      if (isspace(c)) return CLASE_ESPACIO;
+      return CLASE_OTRO;
+  }
+}
+
+static int peek(void) {
+  int c = fgetc(stdin);
+  if (c != EOF) ungetc(c, stdin);
+  return c;
+}
+
+static int avanzar(void) { return fgetc(stdin); }
