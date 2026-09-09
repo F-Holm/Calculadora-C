@@ -188,7 +188,7 @@ t_tipo_token scanner_siguiente_token(void) {
   int estado = EST_INICIAL;
   size_t pos = 0;
 
-  for (;;) {
+  while (true) {
     int c = peek();
     t_clase clase = clasificar(c);
     int siguiente = tiene_fila(estado) ? tabla[estado][clase] : EST_ERROR;
