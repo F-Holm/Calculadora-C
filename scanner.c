@@ -400,11 +400,6 @@ static FILE* fuente;
 // reconocido (el "lexema"). Es el buffer que pide la consigna del TP2 y
 // el que devuelve scanner_lexema().
 static char lexema[TAM_LEXEMA];
-// true si se descartó un '\n' como espacio en blanco durante el
-// reconocimiento del token que se está devolviendo en la llamada
-// actual a scanner_siguiente_token(). Se recalcula desde cero en cada
-// llamada (ver el inicio de esa función).
-static bool salto_linea;
 
 void scanner_iniciar(FILE* entrada) { fuente = entrada; }
 
@@ -428,9 +423,6 @@ t_tipo_token scanner_siguiente_token(void) {
   int estado = EST_INICIAL;
   // Cuántos caracteres del lexema actual ya se guardaron en el buffer.
   size_t pos = 0;
-  // Se reinicia acá: solo debe reflejar los saltos de línea salteados
-  // DURANTE este llamado, no los de llamadas anteriores.
-  salto_linea = false;
 
   // Un ciclo por cada carácter que se examina (no necesariamente se
   // consume: ver más abajo el caso en el que se corta sin avanzar).
@@ -451,10 +443,6 @@ t_tipo_token scanner_siguiente_token(void) {
     // descarta (se consume pero no se guarda en el lexema) y se sigue
     // esperando el próximo token desde el mismo estado inicial.
     if (estado == EST_INICIAL && siguiente == EST_INICIAL) {
-      // Antes de descartar el espacio, nos fijamos si es justo un
-      // salto de línea, para poder informarlo después via
-      // scanner_hubo_salto_de_linea().
-      if (c == '\n') salto_linea = true;
       avanzar(); /* descarta espacios en blanco */
       continue;
     }
@@ -551,4 +539,27 @@ const char* scanner_nombre_token(t_tipo_token token) {
   }
 }
 
-bool scanner_hubo_salto_de_linea(void) { return salto_linea; }
+bool scanner_fin_de_linea(void) {
+  // Primero se descartan los espacios y tabuladores que puedan quedar
+  // entre el último token y el final de la línea (por ejemplo "2 + 3   ").
+  // El '\n' NO entra en este lazo: es justamente la marca que se busca.
+  int c = peek();
+  while (c != EOF && c != '\n' && isspace(c)) {
+    avanzar();
+    c = peek();
+  }
+
+  // Si lo que sigue es el fin de la entrada, no hay más líneas: se informa
+  // como fin de línea para que main.c muestre un último prompt antes del
+  // token TOKEN_FDT.
+  if (c == EOF) return true;
+
+  // Si sigue un '\n', se lo consume y se confirma que la línea terminó.
+  if (c == '\n') {
+    avanzar();
+    return true;
+  }
+
+  // Cualquier otra cosa es el comienzo de otro token en la misma línea.
+  return false;
+}

@@ -116,10 +116,17 @@ const char* scanner_lexema(void);
 // reconoció, en vez de imprimir directamente el número del enum.
 const char* scanner_nombre_token(t_tipo_token token);
 
-// true si, para llegar al token que se acaba de devolver en la última
-// llamada a scanner_siguiente_token(), hubo que saltear al menos un
-// salto de línea ('\n') como espacio en blanco. Sirve para que quien
-// use el escáner (main.c) sepa cuándo arrancó una línea nueva de la
-// entrada, sin depender de ninguna función específica del sistema
-// operativo para leer línea por línea.
-bool scanner_hubo_salto_de_linea(void);
+// Consume lo que quede de la línea actual DESPUÉS del último token
+// reconocido: primero los espacios y tabuladores sueltos, y después el
+// '\n' que cierra la línea (si lo hay). Devuelve true si efectivamente
+// se llegó al fin de una línea (se consumió un '\n') o al fin de la
+// entrada; devuelve false si, en cambio, todavía queda otro token en la
+// misma línea.
+//
+// Sirve para que main.c pueda mostrar el prompt "> " ANTES de pedir el
+// siguiente token (y no después de que el usuario ya tipeó la línea):
+// apenas termina de imprimir un token, llama a esta función y, si dio
+// true, sabe que la próxima llamada a scanner_siguiente_token() se va a
+// quedar esperando una línea nueva, así que conviene imprimir el prompt
+// primero.
+bool scanner_fin_de_linea(void);

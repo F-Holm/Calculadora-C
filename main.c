@@ -2,7 +2,7 @@
 #include <stdio.h>
 
 // t_tipo_token, scanner_iniciar, scanner_siguiente_token, scanner_lexema,
-// scanner_nombre_token, es_error_token, scanner_hubo_salto_de_linea: toda
+// scanner_nombre_token, es_error_token, scanner_fin_de_linea: toda
 // la interfaz pública del escáner que implementamos en scanner.c.
 #include "scanner.h"
 
@@ -28,24 +28,24 @@ int main(void) {
   // específica del sistema operativo para esto.
   scanner_iniciar(stdin);
 
-  // Primer prompt, antes de reconocer el primer token (como el "> "
-  // inicial del ejemplo de la calculadora).
-  printf("> ");
-
-  // 'primero' evita imprimir un "> " de más antes del primerísimo token:
-  // ese ya lo mostramos arriba.
-  bool primero = true;
+  // 'inicio_de_linea' arranca en true para que se imprima el primer
+  // prompt antes de reconocer el primer token (como el "> " inicial del
+  // ejemplo de la calculadora). Después, scanner_fin_de_linea() lo vuelve
+  // a poner en true cada vez que se termina una línea de la entrada.
+  bool inicio_de_linea = true;
   t_tipo_token token;
   do {
-    token = scanner_siguiente_token();
+    // El prompt se imprime ANTES de pedir el token, y se fuerza el vaciado
+    // del buffer de salida con fflush: así el "> " aparece en la terminal
+    // de inmediato, antes de que scanner_siguiente_token() se quede
+    // esperando lo que el usuario tipee (printf por sí solo no garantiza
+    // que el "> ", al no terminar en '\n', se muestre antes de la lectura).
+    if (inicio_de_linea) {
+      printf("> ");
+      fflush(stdout);
+    }
 
-    // Cada vez que el escáner saltó al menos un '\n' para llegar hasta acá
-    // (ver scanner_hubo_salto_de_linea), significa que arrancamos una
-    // línea nueva de la entrada, así que mostramos un prompt fresco antes
-    // de reportar este token. Como puede haber más de un '\n' seguidos
-    // (líneas en blanco), esto imprime un solo "> ", nunca varios.
-    if (!primero && scanner_hubo_salto_de_linea()) printf("> ");
-    primero = false;
+    token = scanner_siguiente_token();
 
     if (token == TOKEN_FDT) {
       // FDT no tiene lexema que mostrar: solo se informa el nombre del
@@ -54,6 +54,13 @@ int main(void) {
     } else {
       imprimir_token(token);
     }
+
+    // scanner_fin_de_linea() consume los espacios y el '\n' que puedan
+    // quedar después de este token. Si devuelve true, la próxima vuelta
+    // arranca una línea nueva (o el fin de la entrada), así que toca
+    // volver a mostrar el prompt. Como consume todos los '\n' seguidos que
+    // encuentre, varias líneas en blanco producen un solo "> ", nunca varios.
+    inicio_de_linea = scanner_fin_de_linea();
   } while (token != TOKEN_FDT);
 
   return 0;
