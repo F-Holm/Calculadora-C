@@ -10,7 +10,6 @@ int main(void) {
   do {
     if (inicio_de_linea) {
       printf("> ");
-      fflush(stdout);
     }
 
     token = scanner_siguiente_token();
