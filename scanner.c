@@ -222,6 +222,10 @@ t_tipo_token scanner_siguiente_token(void) {
 
 const char* scanner_lexema(void) { return lexema; }
 
+bool es_error_token(t_tipo_token token) {
+  return token >= ERROR_CARACTER_INVALIDO;
+}
+
 const char* scanner_nombre_token(t_tipo_token token) {
   switch (token) {
     case TOKEN_NUMERO:

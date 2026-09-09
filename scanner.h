@@ -23,9 +23,7 @@ typedef enum {
   ERROR_NUMERO_MAL_FORMADO
 } t_tipo_token;
 
-static inline bool es_error_token(t_tipo_token token) {
-  return token >= ERROR_CARACTER_INVALIDO;
-}
+bool es_error_token(t_tipo_token token);
 
 t_tipo_token scanner_siguiente_token(void);
 
