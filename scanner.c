@@ -1,3 +1,4 @@
+// Persona 1: diseño del autómata (clases, estados y tabla de transición)
 #include "scanner.h"
 
 #include <ctype.h>
@@ -175,6 +176,7 @@ static const int tabla[NUM_FILAS][NUM_CLASES] = {
                  [CLASE_EOF] = EST_ERROR,
                  [CLASE_OTRO] = EST_ERROR}};
 
+// Persona 2: motor de escaneo (bucle principal scanner_siguiente_token)
 static char lexema[TAM_LEXEMA];
 
 static int tiene_fila(int estado);
@@ -220,6 +222,7 @@ t_tipo_token scanner_siguiente_token(void) {
   return token_de_estado(estado);
 }
 
+// Persona 4: interfaz pública restante y lectura de entrada
 const char* scanner_lexema(void) { return lexema; }
 
 bool es_error_token(t_tipo_token token) {
@@ -284,6 +287,7 @@ bool scanner_fin_de_linea(void) {
   return false;
 }
 
+// Persona 3: funciones de soporte de la tabla
 static int tiene_fila(int estado) {
   switch (estado) {
     case EST_INICIAL:
@@ -368,6 +372,7 @@ static t_clase clasificar(int c) {
   }
 }
 
+// Persona 4: lectura de stdin (peek/avanzar)
 static int peek(void) {
   int c = fgetc(stdin);
   if (c != EOF) ungetc(c, stdin);

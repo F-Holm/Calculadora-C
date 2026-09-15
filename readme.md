@@ -1,3 +1,5 @@
+<!-- Persona 7: documentación general del proyecto -->
+
 # Calculadora-C
 
 TP2 de Compiladores/Lenguajes Formales: escáner (analizador léxico) para

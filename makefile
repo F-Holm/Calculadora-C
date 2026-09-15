@@ -1,3 +1,4 @@
+# Persona 5: programa de prueba (main) y build
 CC = gcc
 STD = c2x
 CFLAGS_COMMON  = -Wall -Wextra -pedantic-errors -std=$(STD)

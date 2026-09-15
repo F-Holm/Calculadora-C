@@ -1,3 +1,4 @@
+// Persona 4: interfaz pública del escáner
 #pragma once
 
 static constexpr int TAM_LEXEMA = 64;

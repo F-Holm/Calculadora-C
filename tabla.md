@@ -1,3 +1,5 @@
+<!-- Persona 6: documentación formal del autómata -->
+
 # Tabla de transición del escáner
 
 ## Definición formal del autómata

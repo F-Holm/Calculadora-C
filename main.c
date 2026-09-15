@@ -1,3 +1,4 @@
+// Persona 5: programa de prueba (main) y build
 #include <stdio.h>
 
 #include "scanner.h"
